@@ -84,17 +84,17 @@ function! docker_tools#action_cb(...) abort
 		call win_gotoid(a:current_windowid)
 	endif
 	if has('nvim')
-		call s:echo_msg(a:2[0])
+		call docker_tools#util#echo_msg(a:2[0])
 	else
-		call s:echo_msg(a:2)
+		call docker_tools#util#echo_msg(a:2)
 	endif
 endfunction
 
 function! docker_tools#err_cb(...) abort
 	if has('nvim')
-		call s:echo_error(a:2[0])
+		call docker_tools#util#echo_error(a:2[0])
 	else
-		call s:echo_error(a:2)
+		call docker_tools#util#echo_error(a:2)
 	endif
 endfunction
 "}}}
@@ -104,7 +104,7 @@ function! s:dt_get_id() abort
 	call search("CONTAINER ID")
 	let a:current_cursor = getcurpos()
 	if a:current_cursor[1] !=# b:first_row
-		call s:echo_error("No container ID found")
+		call docker_tools#util#echo_error("No container ID found")
 		return ""
 	endif
 	let a:current_cursor[1] = a:row_num
@@ -139,7 +139,7 @@ function! s:dt_ui_load() abort
 		let b:first_row = 2
 	endif
 
-	silent! execute printf("read ! %s%s ps%s",s:sudo_mode(),g:dockertools_docker_cmd,['',' -a'][b:show_all_containers])
+	silent! execute printf("read ! %s%s ps%s",docker_tools#util#sudo_mode(),g:dockertools_docker_cmd,['',' -a'][b:show_all_containers])
 
 	silent 1d
 	call setpos('.', a:save_cursor)
@@ -188,7 +188,7 @@ function! docker_tools#container_logs(id,...) abort
 	setlocal cursorline
 	setlocal nobuflisted
 	nnoremap <buffer> <silent> q :quit<CR>
-	silent execute printf("read ! %s%s container logs %s %s",s:sudo_mode(),g:dockertools_docker_cmd,join(a:000,' '),a:id)
+	silent execute printf("read ! %s%s container logs %s %s",docker_tools#util#sudo_mode(),g:dockertools_docker_cmd,join(a:000,' '),a:id)
 	silent 1d
 endfunction
 "}}}
@@ -196,35 +196,35 @@ endfunction
 function! s:container_exec(command) abort
 	if a:command !=# ""
 		let containerid = s:dt_get_id()
-		call s:term_win_open(printf('%s%s exec -ti %s sh -c "%s"',s:sudo_mode(),g:dockertools_docker_cmd,containerid,a:command),containerid)
+		call docker_tools#util#term_win_open(printf('%s%s exec -ti %s sh -c "%s"',docker_tools#util#sudo_mode(),g:dockertools_docker_cmd,containerid,a:command),containerid)
 	endif
 endfunction
 
 function! s:container_action_run(action,id,options) abort
 	call s:echo_container_action_msg(a:action,a:id)
 	if has('nvim')
-		call jobstart(printf('%s%s container %s %s %s',s:sudo_mode(),g:dockertools_docker_cmd,a:action,a:options,a:id),{'on_stdout': 'docker_tools#action_cb','on_stderr': 'docker_tools#err_cb'})
+		call jobstart(printf('%s%s container %s %s %s',docker_tools#util#sudo_mode(),g:dockertools_docker_cmd,a:action,a:options,a:id),{'on_stdout': 'docker_tools#action_cb','on_stderr': 'docker_tools#err_cb'})
 	elseif has('job') && !g:dockertools_disable_job
-		call job_start(printf('%s%s container %s %s %s',s:sudo_mode(),g:dockertools_docker_cmd,a:action,a:options,a:id),{'out_cb': 'docker_tools#action_cb','err_cb': 'docker_tools#err_cb'})
+		call job_start(printf('%s%s container %s %s %s',docker_tools#util#sudo_mode(),g:dockertools_docker_cmd,a:action,a:options,a:id),{'out_cb': 'docker_tools#action_cb','err_cb': 'docker_tools#err_cb'})
 	else
-		call system(printf('%s%s container %s %s %s',s:sudo_mode(),g:dockertools_docker_cmd,a:action,a:options,shellescape(a:id)))
+		call system(printf('%s%s container %s %s %s',docker_tools#util#sudo_mode(),g:dockertools_docker_cmd,a:action,a:options,shellescape(a:id)))
 	endif
 endfunction
 
 function! s:echo_container_action_msg(action,id) abort
 	if a:action=='start'
-		call s:echo_msg('Starting container '.a:id.'...')
+		call docker_tools#util#echo_msg('Starting container '.a:id.'...')
 	elseif a:action=='stop'
-		call s:echo_msg('Stopping container '.a:id.'...')
+		call docker_tools#util#echo_msg('Stopping container '.a:id.'...')
 	elseif a:action=='rm'
-		call s:echo_msg('Removing container '.a:id.'...')
+		call docker_tools#util#echo_msg('Removing container '.a:id.'...')
 	elseif a:action=='restart'
-		call s:echo_msg('Restarting container '.a:id.'...')
+		call docker_tools#util#echo_msg('Restarting container '.a:id.'...')
 	endif
 endfunction
 
 function! s:refresh_container_list() abort
-	let container_str = system(g:dockertools_docker_cmd + ' ps -a --format="{{.ID}} {{.Names}}"')
+	let container_str = system(docker_tools#util#sudo_mode().g:dockertools_docker_cmd.' ps -a --format="{{.ID}} {{.Names}}"')
 	let s:container_list = split(container_str)
 endfunction
 
@@ -233,40 +233,6 @@ function! docker_tools#complete(ArgLead, CmdLine, CursorPos) abort
 		call s:refresh_container_list()
 	endif
 	return filter(s:container_list, 'v:val =~ "^'.a:ArgLead.'"')
-endfunction
-"}}}
-"utils{{{
-function! s:echo_msg(msg) abort
-	redraw
-	echom "vim-docker: " . a:msg
-endfunction
-
-function! s:echo_error(msg) abort
-	echohl errormsg
-	call s:echo_msg(a:msg)
-	echohl normal
-endfunction
-
-function! s:echo_warning(msg) abort
-	echohl warningmsg
-	call s:echo_msg(a:msg)
-	echohl normal
-endfunction
-
-function! s:term_win_open(command,termname) abort
-	if has('nvim')
-		silent execute printf("botright %d split TERM",g:dockertools_term_size)
-		call termopen(a:command)
-	elseif has('terminal')
-		silent execute printf("botright %d split TERM",g:dockertools_term_size)
-		call term_start(a:command,{"term_finish":['open','close'][g:dockertools_term_closeonexit],"term_name":a:termname,"curwin":"1"})
-	else
-		call s:echo_error('terminal is not supported')
-	endif
-endfunction
-
-function! s:sudo_mode() abort
-	return ['','sudo '][g:dockertools_sudo_mode]
 endfunction
 "}}}
 " vim: fdm=marker:
