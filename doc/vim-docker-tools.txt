@@ -14,6 +14,8 @@ CONTENTS                                                 *docker-tools-contents*
 ================================================================================
 INTRO                                                       *docker-tools-intro*
 
+This project was forked from https://github.com/kevinhui/vim-docker-tools
+
 vim-docker-tools provide a set of tools for managing Docker containers.
 
 ================================================================================
@@ -21,20 +23,20 @@ INSTALL                                                   *docker-tools-install*
 
 *  Pathogen >
 
-    git clone https://github.com/kevinhui/vim-docker-tools.git \
+    git clone https://github.com/etordera/vim-docker-tools.git \
 	  ~/.vim/bundle/vim-docker-tools
 <
 *  Vim-plug >
 
-    Plug 'kevinhui/vim-docker-tools'
+    Plug 'etordera/vim-docker-tools'
 
 *  NeoBundle >
 
-    NeoBundle 'kevinhui/vim-docker-tools'
+    NeoBundle 'etordera/vim-docker-tools'
 <
 *  Vundle >
 
-    Plugin 'kevinhui/vim-docker-tools'
+    Plugin 'etordera/vim-docker-tools'
 <
 *  Manual >
 
@@ -110,6 +112,7 @@ MAPPINGS                                                 *docker-tools-mappings*
     x                    | Delete container.
     p                    | Pause container.
     u                    | Unpause container.
+    b                    | Execute 'bash' in container.
     >                    | Execute command to container.
     <                    | Show container logs.
     a                    | Toggle show all/running containers.

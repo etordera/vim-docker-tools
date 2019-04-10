@@ -54,6 +54,12 @@ function! docker_tools#dt_action(action) abort
 	endif
 endfunction
 
+function! docker_tools#dt_run_bash() abort
+	if s:dt_container_selected()
+		call s:container_exec('bash')
+	endif
+endfunction
+
 function! docker_tools#dt_run_command() abort
 	if s:dt_container_selected()
 		let command = input('Enter command: ')
@@ -128,6 +134,7 @@ function! s:dt_set_mapping() abort
 		nnoremap <buffer> <silent> r :call docker_tools#dt_action('restart')<CR>
 		nnoremap <buffer> <silent> p :call docker_tools#dt_action('pause')<CR>
 		nnoremap <buffer> <silent> u :call docker_tools#dt_action('unpause')<CR>
+		nnoremap <buffer> <silent> b :call docker_tools#dt_run_bash()<CR>
 		nnoremap <buffer> <silent> > :call docker_tools#dt_run_command()<CR>
 		nnoremap <buffer> <silent> < :call docker_tools#dt_logs()<CR>
 		nnoremap <buffer> <silent> a :call docker_tools#dt_toggle_all()<CR>
@@ -170,6 +177,7 @@ function! s:dt_get_help() abort
 	let help .= "# x: delete container\n"
 	let help .= "# p: pause container\n"
 	let help .= "# u: unpause container\n"
+	let help .= "# b: execute bash in container\n"
 	let help .= "# >: execute command to container\n"
 	let help .= "# <: show container logs\n"
 	let help .= "# a: toggle show all/running containers\n"
@@ -291,6 +299,7 @@ function! s:term_win_open(command,termname) abort
 		silent execute printf("botright %d split TERM",g:dockertools_term_size)
 		call termopen(a:command)
 	elseif has('terminal')
+        call docker_tools#dt_close()
 		silent execute printf("botright %d split TERM",g:dockertools_term_size)
 		call term_start(a:command,{"term_finish":['open','close'][g:dockertools_term_closeonexit],"term_name":a:termname,"curwin":"1"})
 	else
